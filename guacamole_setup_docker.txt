@@ -1,0 +1,116 @@
+# Install Docker
+
+```
+sudo apt update
+sudo apt install -y docker.io
+sudo systemctl enable --now docker
+sudo apt install -y docker-compose
+```
+
+# Docker image pull
+
+```
+docker pull guacamole/guacamole
+docker pull guacamole/guacd
+docker pull mariadb
+```
+
+# Grab the latest sql info from the latest images
+
+Run this command to retrive the db.sql:
+
+`docker run --rm guacamole/guacamole /opt/guacamole/bin/initdb.sh --mysql > initdb.sql`
+
+# Create initial DB docker-compose.yml and additional config
+
+```
+version: '3'
+services:
+  guacdb:
+    container_name: guacamoledb
+    image: mariadb
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: 'MariaDBRootPass'
+      MYSQL_DATABASE: 'guacamole_db'
+      MYSQL_USER: 'guacamole_user'
+      MYSQL_PASSWORD: 'MariaDBUserPass'
+    volumes:
+      - './db-data:/var/lib/mysql'
+volumes:
+  db-data:
+```
+
+After saving the files please run: `docker-compose up -d`
+
+Next you need to copy the SQL file into the docker container:
+
+`docker cp initdb.sql guacamoledb:/initdb.sql`
+
+Next, input it to the DB by running:
+
+```
+docker exec -it guacamoledb bash
+cat /initdb.sql | mariadb -u root -p guacamole_db
+exit
+```
+
+And now turn off the DB by running: `docker-compose down`
+
+# Complete the docker-compose.yml with all the necessary images
+
+Backup your docker-compose files by typing: `cp docker-compose.yml docker-compose.yml.bak`
+
+Then edit **docker-compose.yml** to include additional config:
+
+```
+version: '3'
+services:
+  guacdb:
+    container_name: guacamoledb
+    image: mariadb
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: 'MariaDBRootPass'
+      MYSQL_DATABASE: 'guacamole_db'
+      MYSQL_USER: 'guacamole_user'
+      MYSQL_PASSWORD: 'MariaDBUserPass'
+    volumes:
+      - './db-data:/var/lib/mysql'
+  guacd:
+    container_name: guacd
+    image: guacamole/guacd
+    restart: unless-stopped
+  guacamole:
+    container_name: guacamole
+    image: guacamole/guacamole
+    restart: unless-stopped
+    ports:
+      - 8080:8080
+    environment:
+      GUACD_HOSTNAME: "guacd"
+      MYSQL_HOSTNAME: "guacdb"
+      MYSQL_DATABASE: "guacamole_db"
+      MYSQL_USER: "guacamole_user"
+      MYSQL_PASSWORD: "MariaDBUserPass"
+      TOTP_ENABLED: "true"
+    depends_on:
+      - guacdb
+      - guacd
+volumes:
+  db-data:
+```
+
+Now run `docker-compose up -d` and Guacamole should be up and running on your server.
+
+# Access Guacamole
+
+Open your browser and put in your Guacamole IP with port 8080, for example:
+
+http://mylocalip.home:8080/guacamole
+
+The original username/password are **guacadmin/guacadmin**
+
+For security reason I included TOTP in my installation guide, so be sure to have your Google Authenticator prepared.
+
+Otherwise, make sure that you remove **TOTP_ENABLED: "true"** line from your **docker-compose.yml** file.
