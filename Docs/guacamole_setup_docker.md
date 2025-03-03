@@ -205,7 +205,7 @@ volumes:
   db-data:
 ```
 
-1. Find the Guacamole container’s IP:
+2. Find the Guacamole container’s IP:
 
 `docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' guacamole`
 
@@ -213,7 +213,7 @@ This will return IP of Docker container running Guacamole, for example 172.18.0.
 
 **NOTE: Currently this will have to be run on each server or container restart, and nginx config updated!**
 
-2. Edit the Ngnix config file to specify that container IP, rather than localhost:
+3. Edit the Ngnix config file to specify that container IP, rather than localhost:
 
 `sudo vi /etc/nginx/sites-available/guacamole`
 ```
@@ -251,7 +251,7 @@ server {
 
 ```
 
-8. Restart Ngnix: `sudo systemctl restart nginx`
+4. Restart Ngnix: `sudo systemctl restart nginx`
 
 # Summary
 
