@@ -211,24 +211,44 @@ volumes:
 
 This will return IP of Docker container running Guacamole, for example 172.18.0.5.
 
+**NOTE: Currently this will have to be run on each server or container restart, and nginx config updated!**
+
 2. Edit the Ngnix config file to specify that container IP, rather than localhost:
 
 `sudo vi /etc/nginx/sites-available/guacamole`
 ```
 server {
-    listen 443 ssl;
     server_name mydomain.ddns.net;
 
-    ssl_certificate /etc/letsencrypt/live/mydomain.ddns.net/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/mydomain.ddns.net/privkey.pem;
-
     location / {
-        proxy_pass http://172.18.0.5:8080;  # Replace with your container's actual IP
+        proxy_pass http://172.19.0.4:8080; # Or the correct port of your Guacamole container
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header Host $host;
+        # WebSocket Support - RESOLVES RDP LATENCY ISSUES!
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
     }
+
+    listen 443 ssl; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/mydomain.ddns.net/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/mydomain.ddns.net/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
 }
+server {
+    if ($host = mydomain.ddns.net) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+
+    listen 80;
+    server_name mydomain.ddns.net;
+    return 404; # managed by Certbot
+}
+
 ```
 
 8. Restart Ngnix: `sudo systemctl restart nginx`
