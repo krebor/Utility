@@ -221,7 +221,7 @@ server {
     server_name mydomain.ddns.net;
 
     location / {
-        proxy_pass http://172.19.0.4:8080; # Or the correct port of your Guacamole container
+        proxy_pass http://172.19.0.4:8080/guacamole/; # If /guacamole/ is omitted, link in format https://mydomain.ddns.net/guacamole/ will have to be used to access website
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header Host $host;
